@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "title": "Complete Project Proposal",
+    "description": "Finish writing the technical proposal for the new client project including timeline and budget estimates.",
+    "order": 1,
+    "dueDate": "2024-01-18"
+  },
+  {
+    "id": "2",
+    "title": "Code Review",
+    "description": "Review pull requests from team members and provide feedback on the authentication module.",
+    "order": 2,
+    "dueDate": "2024-01-16"
+  },
+  {
+    "id": "3",
+    "title": "Update Documentation",
+    "description": "Update API documentation to reflect the latest changes in the user management endpoints.",
+    "order": 3,
+    "dueDate": "2024-01-22"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "title": "New JavaScript Framework",
+    "description": "Found an interesting new framework called Svelte that claims to be faster than React. Need to explore this further.",
+    "order": 1
+  },
+  {
+    "id": "2",
+    "title": "AI Tools for Developers",
+    "description": "List of AI-powered tools that can help with coding, debugging, and documentation generation.",
+    "order": 2
+  },
+  {
+    "id": "3",
+    "title": "Productivity Techniques",
+    "description": "Time management and productivity methods like Pomodoro technique and Getting Things Done (GTD).",
+    "order": 3
+  }
+]

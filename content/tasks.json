@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "title": "Grocery Shopping",
+    "description": "Buy ingredients for this week's meal prep including vegetables, protein, and pantry staples.",
+    "order": 1,
+    "dueDate": "2024-01-15"
+  },
+  {
+    "id": "2",
+    "title": "Call Dentist",
+    "description": "Schedule annual dental checkup and cleaning appointment.",
+    "order": 2,
+    "dueDate": "2024-01-20"
+  },
+  {
+    "id": "3",
+    "title": "Organize Closet",
+    "description": "Sort through clothes, donate items I no longer wear, and organize by season.",
+    "order": 3
+  }
+]
