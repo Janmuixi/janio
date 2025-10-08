@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/Tabs';
 import { ItemList } from './components/ItemList';
 import { ItemDetail } from './components/ItemDetail';
@@ -15,10 +16,20 @@ const categories = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('notes');
   const [selectedItem, setSelectedItem] = useState(null);
   const [items, setItems] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize active tab from URL parameters
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && categories.some(cat => cat.id === tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   // Load data from JSON files
   useEffect(() => {
@@ -49,6 +60,23 @@ export default function Home() {
 
     loadData();
   }, []);
+
+  // Handle tab change with URL update
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSelectedItem(null); // Clear selected item when switching tabs
+    
+    // Update URL without page reload
+    const params = new URLSearchParams(searchParams.toString());
+    if (newTab === 'notes') {
+      params.delete('tab'); // Remove tab param for default tab
+    } else {
+      params.set('tab', newTab);
+    }
+    
+    const newUrl = params.toString() ? `/?${params.toString()}` : '/';
+    router.push(newUrl, { scroll: false });
+  };
 
   // Save data to API
   const saveData = async (category, itemsToSave) => {
@@ -153,7 +181,7 @@ export default function Home() {
           <p className="text-gray-600">Organize your life, one item at a time</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             {categories.map((category) => {
               const Icon = category.icon;

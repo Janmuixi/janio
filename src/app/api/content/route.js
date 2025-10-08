@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const contentDir = path.join(process.cwd(), 'public', 'content');
+import { getDb, collection, query, where, getDocs, writeBatch, addDoc, doc } from '@/lib/db';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -13,18 +10,23 @@ export async function GET(request) {
   }
 
   try {
-    const filePath = path.join(contentDir, `${category}.json`);
+    const db = getDb();
+    const contentCollection = collection(db, 'content');
+    const q = query(contentCollection, where('type', '==', category));
+    const querySnapshot = await getDocs(q);
     
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json([]);
-    }
-
-    const data = fs.readFileSync(filePath, 'utf8');
-    const items = JSON.parse(data);
-    
+    const items = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Convert Firestore Timestamps to JavaScript Date objects
+      if (data.dueDate && data.dueDate.toDate) {
+        data.dueDate = data.dueDate.toDate();
+      }
+      items.push({ id: doc.id, ...data });
+    });
     return NextResponse.json(items);
   } catch (error) {
-    console.error('Error reading file:', error);
+    console.error('Error reading from Firestore:', error);
     return NextResponse.json({ error: 'Failed to read data' }, { status: 500 });
   }
 }
@@ -37,19 +39,41 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Category and items array are required' }, { status: 400 });
     }
 
-    const filePath = path.join(contentDir, `${category}.json`);
+    const db = getDb();
+    const contentCollection = collection(db, 'content');
     
-    // Ensure directory exists
-    if (!fs.existsSync(contentDir)) {
-      fs.mkdirSync(contentDir, { recursive: true });
-    }
-
-    // Write data to file
-    fs.writeFileSync(filePath, JSON.stringify(items, null, 2), 'utf8');
+    // First, find all existing documents with the specified type
+    const q = query(contentCollection, where('type', '==', category));
+    const querySnapshot = await getDocs(q);
     
-    return NextResponse.json({ success: true });
+    // Create a batch operation
+    const batch = writeBatch(db);
+    
+    // Delete all existing documents for this category
+    querySnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    
+    // Add all new items as individual documents
+    items.forEach((item) => {
+      const docRef = doc(contentCollection);
+      batch.set(docRef, {
+        type: category,
+        ...item,
+        createdAt: new Date()
+      });
+    });
+    
+    // Commit the batch operation
+    await batch.commit();
+    
+    return NextResponse.json({ 
+      success: true, 
+      deletedCount: querySnapshot.size,
+      createdCount: items.length 
+    });
   } catch (error) {
-    console.error('Error writing file:', error);
+    console.error('Error updating Firestore:', error);
     return NextResponse.json({ error: 'Failed to save data' }, { status: 500 });
   }
 }

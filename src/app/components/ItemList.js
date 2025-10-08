@@ -21,6 +21,18 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Calendar } from 'lucide-react';
 
+// Utility function to format date to EU format (DD/MM/YYYY)
+const formatDateToEU = (date) => {
+  if (!date) return '';
+  
+  const jsDate = new Date(date);
+  const day = jsDate.getDate().toString().padStart(2, '0');
+  const month = (jsDate.getMonth() + 1).toString().padStart(2, '0');
+  const year = jsDate.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
+
 function SortableItem({ item, isSelected, onSelect }) {
   const {
     attributes,
@@ -70,7 +82,7 @@ function SortableItem({ item, isSelected, onSelect }) {
           {item.dueDate && (
             <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
               <Calendar className="h-3 w-3" />
-              <span>{new Date(item.dueDate).toLocaleDateString()}</span>
+              <span>{formatDateToEU(item.dueDate)}</span>
             </div>
           )}
         </div>
