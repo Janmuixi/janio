@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { taskCategoryIds } from '@/lib/categories';
+import { useToast } from '@/app/components/ui/ToastContext';
 
 const FALLBACK_TAB = 'notes';
 const DEFAULT_TITLE = 'Untitled item';
@@ -20,6 +21,7 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
   const [selectedItem, setSelectedItem] = useState(null);
   const [items, setItems] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,6 +55,11 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
           emptyItems[cat.id] = [];
         });
         setItems(emptyItems);
+        addToast({
+          title: 'Failed to load data',
+          description: 'Please check your connection and try again.',
+          type: 'error',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -61,7 +68,7 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
     if (categories.length > 0) {
       loadData();
     }
-  }, [categories]);
+  }, [categories, addToast]);
 
   const mutateContent = useCallback(async (payload) => {
     try {
@@ -79,9 +86,14 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
       return response.json();
     } catch (error) {
       console.error('Error saving data:', error);
+      addToast({
+        title: 'Failed to save changes',
+        description: 'Please try again. Your local changes may be out of sync.',
+        type: 'error',
+      });
       throw error;
     }
-  }, []);
+  }, [addToast]);
 
   const resetSelection = useCallback(() => {
     setSelectedItem(null);

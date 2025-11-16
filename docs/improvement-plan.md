@@ -15,18 +15,9 @@ Each item below is an actionable task with a brief description, expected changes
    - Gate API routes and UI actions on the authenticated user.
 
 ## Code Quality Tasks
-1. **Validate API requests**
-   - Introduce a schema (Zod or manual checks) for POST payloads.
-   - Normalize ordering and reject invalid states before writing to Firestore.
-2. **Surface persistence errors**
-   - Add a lightweight toast/snackbar system.
-   - Display errors when fetch/save fails and optionally retry automatically.
-3. **Remove unused code and lint**
-   - Clean unused imports (e.g., `useState` in `ItemList`).
-   - Run ESLint and fix any reported issues.
-4. **Secure Firebase configuration**
+1. **Secure Firebase configuration**
    - Move the Firebase config to environment variables.
    - Throw descriptive errors when required env vars are missing.
-5. **Limit global transitions**
+2. **Limit global transitions**
    - Remove `* { transition: ... }` from `globals.css`.
    - Apply transitions only to components that need them (buttons, cards, etc.).
