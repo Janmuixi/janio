@@ -4,6 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { taskCategoryIds } from '@/lib/categories';
 
 const FALLBACK_TAB = 'notes';
+const DEFAULT_TITLE = 'Untitled item';
+
+const normalizeTitle = (title) => {
+  if (typeof title !== 'string') {
+    return DEFAULT_TITLE;
+  }
+  const trimmed = title.trim();
+  return trimmed.length > 0 ? trimmed : DEFAULT_TITLE;
+};
 
 export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB } = {}) {
   const initialTab = defaultTab || categories[0]?.id || FALLBACK_TAB;
@@ -87,7 +96,7 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
     setItems(prev => {
       const categoryItems = prev[categoryId] || [];
       const itemWithId = {
-        title: '',
+        title: DEFAULT_TITLE,
         description: '',
         order: categoryItems.length + 1,
         ...partialItem,
@@ -98,6 +107,8 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
           ? crypto.randomUUID()
           : Date.now().toString();
       }
+
+      itemWithId.title = normalizeTitle(itemWithId.title);
 
       if (taskCategoryIds.has(categoryId) && typeof itemWithId.dueDate === 'undefined') {
         itemWithId.dueDate = '';
@@ -114,11 +125,14 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
       setSelectedItem(createdItem);
     }
 
-    mutateContent({
-      action: 'create',
-      category: categoryId,
-      item: createdItem,
-    }).catch(() => {});
+    if (createdItem) {
+      createdItem.title = normalizeTitle(createdItem.title);
+      mutateContent({
+        action: 'create',
+        category: categoryId,
+        item: createdItem,
+      }).catch(() => {});
+    }
   }, [activeTab, mutateContent]);
 
   const updateItem = useCallback((updatedItem, categoryId = activeTab) => {
@@ -137,10 +151,15 @@ export function useContentManager({ categories = [], defaultTab = FALLBACK_TAB }
       setSelectedItem(updatedItem);
     }
 
+    const payload = {
+      ...updatedItem,
+      title: normalizeTitle(updatedItem.title),
+    };
+
     mutateContent({
       action: 'update',
       category: categoryId,
-      item: updatedItem,
+      item: payload,
     }).catch(() => {});
   }, [activeTab, mutateContent]);
 

@@ -16,6 +16,55 @@ import { categories } from '@/lib/categories';
 
 const validCategoryIds = new Set(categories.map((cat) => cat.id));
 
+const isNonEmptyString = (value) =>
+  typeof value === 'string' && value.trim().length > 0;
+
+const isValidDueDate = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return true;
+  }
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+};
+
+const normalizeOrder = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 1) {
+    return null;
+  }
+  return Math.floor(numeric);
+};
+
+const validateItemPayload = (item) => {
+  if (!item || typeof item !== 'object') {
+    return 'Item payload must be an object';
+  }
+
+  if (!isNonEmptyString(item.id)) {
+    return 'Item id is required';
+  }
+
+  if (!isNonEmptyString(item.title || '')) {
+    return 'Title must be a non-empty string';
+  }
+
+  const normalizedOrder = normalizeOrder(item.order);
+  if (normalizedOrder === null) {
+    return 'Order must be a positive number';
+  }
+  item.order = normalizedOrder;
+
+  if (item.description !== undefined && typeof item.description !== 'string') {
+    return 'Description must be a string';
+  }
+
+  if (!isValidDueDate(item.dueDate)) {
+    return 'dueDate must be a valid date string';
+  }
+
+  return null;
+};
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category');
@@ -67,8 +116,13 @@ export async function POST(request) {
 
     if (action === 'create') {
       const { category, item } = body;
-      if (!category || !validCategoryIds.has(category) || !item || !item.id) {
-        return NextResponse.json({ error: 'Valid category and item with id are required' }, { status: 400 });
+      if (!category || !validCategoryIds.has(category)) {
+        return NextResponse.json({ error: 'Valid category is required' }, { status: 400 });
+      }
+
+      const validationError = validateItemPayload(item);
+      if (validationError) {
+        return NextResponse.json({ error: validationError }, { status: 400 });
       }
 
       const docRef = doc(contentCollection, item.id);
@@ -84,8 +138,13 @@ export async function POST(request) {
 
     if (action === 'update') {
       const { category, item } = body;
-      if (!category || !validCategoryIds.has(category) || !item || !item.id) {
-        return NextResponse.json({ error: 'Valid category and item with id are required' }, { status: 400 });
+      if (!category || !validCategoryIds.has(category)) {
+        return NextResponse.json({ error: 'Valid category is required' }, { status: 400 });
+      }
+
+      const validationError = validateItemPayload(item);
+      if (validationError) {
+        return NextResponse.json({ error: validationError }, { status: 400 });
       }
 
       const docRef = doc(contentCollection, item.id);
@@ -99,7 +158,10 @@ export async function POST(request) {
     }
 
     if (action === 'delete') {
-      const { itemId } = body;
+      const { category, itemId } = body;
+      if (!category || !validCategoryIds.has(category)) {
+        return NextResponse.json({ error: 'Valid category is required' }, { status: 400 });
+      }
       if (!itemId) {
         return NextResponse.json({ error: 'itemId is required' }, { status: 400 });
       }
@@ -111,23 +173,35 @@ export async function POST(request) {
     }
 
     if (action === 'reorder') {
-      const { items } = body;
+      const { category, items } = body;
+      if (!category || !validCategoryIds.has(category)) {
+        return NextResponse.json({ error: 'Valid category is required' }, { status: 400 });
+      }
       if (!Array.isArray(items) || items.length === 0) {
         return NextResponse.json({ error: 'items array with id and order is required' }, { status: 400 });
       }
 
-      const batch = writeBatch(db);
-      items.forEach((item) => {
-        if (!item.id) {
-          return;
+      const normalizedEntries = [];
+      for (const item of items) {
+        if (!item?.id) {
+          return NextResponse.json({ error: 'Each item must include an id' }, { status: 400 });
         }
-        const docRef = doc(contentCollection, item.id);
-        batch.update(docRef, { order: item.order });
+        const normalizedOrder = normalizeOrder(item.order);
+        if (normalizedOrder === null) {
+          return NextResponse.json({ error: 'Order must be a positive number' }, { status: 400 });
+        }
+        normalizedEntries.push({ id: item.id, order: normalizedOrder });
+      }
+
+      const batch = writeBatch(db);
+      normalizedEntries.forEach(({ id, order }) => {
+        const docRef = doc(contentCollection, id);
+        batch.update(docRef, { order });
       });
 
       await batch.commit();
 
-      return NextResponse.json({ success: true, updated: items.length });
+      return NextResponse.json({ success: true, updated: normalizedEntries.length });
     }
 
     return NextResponse.json({ error: `Unsupported action: ${action}` }, { status: 400 });
