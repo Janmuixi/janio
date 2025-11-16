@@ -78,26 +78,31 @@ export default function Home() {
     router.push(newUrl, { scroll: false });
   };
 
-  // Save data to API
-  const saveData = async (category, itemsToSave) => {
+  const generateItemId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return Date.now().toString();
+  };
+
+  const mutateContent = async (payload) => {
     try {
       const response = await fetch('/api/content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          category,
-          items: itemsToSave
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save data');
       }
+      return response.json();
     } catch (error) {
       console.error('Error saving data:', error);
       // You could add a toast notification here
+      throw error;
     }
   };
 
@@ -105,61 +110,99 @@ export default function Home() {
     setSelectedItem(item);
   };
 
-  const handleItemUpdate = (updatedItem) => {
-    const updatedItems = items[activeTab].map(item => 
+  const handleItemUpdate = (updatedItem, categoryId = activeTab) => {
+    const targetItems = items[categoryId] || [];
+    const updatedItems = targetItems.map(item => 
       item.id === updatedItem.id ? updatedItem : item
     );
     
     setItems(prev => ({
       ...prev,
-      [activeTab]: updatedItems
+      [categoryId]: updatedItems
     }));
-    setSelectedItem(updatedItem);
+    if (categoryId === activeTab) {
+      setSelectedItem(updatedItem);
+    }
     
-    // Save to API
-    saveData(activeTab, updatedItems);
+    mutateContent({
+      action: 'update',
+      category: categoryId,
+      item: updatedItem
+    }).catch(() => {
+      // Consider reverting state or showing an error toast
+    });
   };
 
-  const handleItemCreate = (newItem) => {
+  const handleItemCreate = (categoryId, partialItem = {}) => {
+    const categoryItems = items[categoryId] || [];
     const itemWithId = {
-      ...newItem,
-      id: Date.now().toString(),
-      order: items[activeTab].length + 1
+      title: '',
+      description: '',
+      order: categoryItems.length + 1,
+      ...partialItem,
     };
+
+    if (!itemWithId.id) {
+      itemWithId.id = generateItemId();
+    }
+
+    if ((categoryId === 'tasks' || categoryId === 'work_tasks') && typeof itemWithId.dueDate === 'undefined') {
+      itemWithId.dueDate = '';
+    }
     
-    const updatedItems = [...items[activeTab], itemWithId];
+    const updatedItems = [...categoryItems, itemWithId];
     
     setItems(prev => ({
       ...prev,
-      [activeTab]: updatedItems
+      [categoryId]: updatedItems
     }));
-    setSelectedItem(itemWithId);
+    if (categoryId === activeTab) {
+      setSelectedItem(itemWithId);
+    }
     
-    // Save to API
-    saveData(activeTab, updatedItems);
+    mutateContent({
+      action: 'create',
+      category: categoryId,
+      item: itemWithId
+    }).catch(() => {
+      // Consider reverting state or showing an error toast
+    });
   };
 
-  const handleItemDelete = (itemId) => {
-    const updatedItems = items[activeTab].filter(item => item.id !== itemId);
+  const handleItemDelete = (itemId, categoryId = activeTab) => {
+    const targetItems = items[categoryId] || [];
+    const updatedItems = targetItems.filter(item => item.id !== itemId);
     
     setItems(prev => ({
       ...prev,
-      [activeTab]: updatedItems
+      [categoryId]: updatedItems
     }));
-    setSelectedItem(null);
+    if (selectedItem?.id === itemId) {
+      setSelectedItem(null);
+    }
     
-    // Save to API
-    saveData(activeTab, updatedItems);
+    mutateContent({
+      action: 'delete',
+      category: categoryId,
+      itemId
+    }).catch(() => {
+      // Consider reverting state or showing an error toast
+    });
   };
 
-  const handleItemsReorder = (reorderedItems) => {
+  const handleItemsReorder = (reorderedItems, categoryId = activeTab) => {
     setItems(prev => ({
       ...prev,
-      [activeTab]: reorderedItems
+      [categoryId]: reorderedItems
     }));
     
-    // Save to API
-    saveData(activeTab, reorderedItems);
+    mutateContent({
+      action: 'reorder',
+      category: categoryId,
+      items: reorderedItems.map(({ id, order }) => ({ id, order }))
+    }).catch(() => {
+      // Consider reverting state or showing an error toast
+    });
   };
 
   if (isLoading) {
@@ -208,7 +251,7 @@ export default function Home() {
                       {category.name}
                     </h2>
                     <button
-                      onClick={() => handleItemCreate({ title: '', description: '', order: items[category.id].length + 1 })}
+                      onClick={() => handleItemCreate(category.id)}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                     >
                       <Plus className="h-4 w-4" />

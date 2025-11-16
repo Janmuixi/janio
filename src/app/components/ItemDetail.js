@@ -13,7 +13,7 @@ export function ItemDetail({ item, onUpdate, onDelete, categoryId }) {
   }, [item]);
 
   const handleSave = () => {
-    onUpdate(editedItem);
+    onUpdate(editedItem, categoryId);
     setIsEditing(false);
   };
 
@@ -24,7 +24,7 @@ export function ItemDetail({ item, onUpdate, onDelete, categoryId }) {
 
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this item?')) {
-      onDelete(item.id);
+      onDelete(item.id, categoryId);
     }
   };
 

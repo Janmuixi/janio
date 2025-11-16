@@ -1,5 +1,19 @@
-import { initializeApp, getApps, cert } from 'firebase/app';
-import { getFirestore, doc, getDoc, collection, query, where, getDocs, writeBatch, addDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  orderBy,
+  getDocs, 
+  writeBatch, 
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
 
 let firestoreInstance = null;
 
@@ -23,4 +37,18 @@ function getDb() {
   return firestoreInstance;
 }
 
-export { getDb, doc, getDoc, collection, query, where, getDocs, writeBatch, addDoc };
+export { 
+  getDb, 
+  doc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  orderBy,
+  getDocs, 
+  writeBatch, 
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc
+};

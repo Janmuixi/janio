@@ -1,6 +1,4 @@
 'use client';
-
-import { useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -102,17 +100,19 @@ export function ItemList({ items, onItemSelect, onItemsReorder, selectedItemId, 
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      const oldIndex = items.findIndex(item => item.id === active.id);
-      const newIndex = items.findIndex(item => item.id === over.id);
-      
-      const reorderedItems = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
-        ...item,
-        order: index + 1
-      }));
-      
-      onItemsReorder(reorderedItems);
+    if (!over || active.id === over.id) {
+      return;
     }
+
+    const oldIndex = items.findIndex(item => item.id === active.id);
+    const newIndex = items.findIndex(item => item.id === over.id);
+    
+    const reorderedItems = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+      ...item,
+      order: index + 1
+    }));
+    
+    onItemsReorder(reorderedItems, categoryId);
   };
 
   if (items.length === 0) {
