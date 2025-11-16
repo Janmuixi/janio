@@ -32,23 +32,34 @@ export default function Home() {
     }
   }, [searchParams]);
 
-  // Load data from JSON files
+  // Load category data in parallel
   useEffect(() => {
     const loadData = async () => {
       try {
-        const loadedItems = {};
-        for (const category of categoryMeta) {
-          const response = await fetch(`/api/content?category=${category.id}`);
-          if (response.ok) {
-            loadedItems[category.id] = await response.json();
-          } else {
-            loadedItems[category.id] = [];
-          }
-        }
+        const results = await Promise.all(
+          categoryMeta.map(async (category) => {
+            try {
+              const response = await fetch(`/api/content?category=${category.id}`);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch ${category.id}`);
+              }
+              const data = await response.json();
+              return [category.id, data];
+            } catch (error) {
+              console.error(`Error loading ${category.id}:`, error);
+              return [category.id, []];
+            }
+          })
+        );
+
+        const loadedItems = results.reduce((acc, [categoryId, data]) => {
+          acc[categoryId] = data;
+          return acc;
+        }, {});
+
         setItems(loadedItems);
       } catch (error) {
         console.error('Error loading data:', error);
-        // Fallback to empty arrays
         const emptyItems = {};
         categoryMeta.forEach(cat => {
           emptyItems[cat.id] = [];
