@@ -7,13 +7,14 @@ import { ItemList } from './components/ItemList';
 import { ItemDetail } from './components/ItemDetail';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { Plus, FileText, CheckSquare, Briefcase, Lightbulb } from 'lucide-react';
+import { categories as categoryMeta, taskCategoryIds } from '@/lib/categories';
 
-const categories = [
-  { id: 'notes', name: 'Notes', icon: FileText, color: 'bg-blue-50 border-blue-200 text-blue-700' },
-  { id: 'tasks', name: 'Tasks', icon: CheckSquare, color: 'bg-green-50 border-green-200 text-green-700' },
-  { id: 'work_tasks', name: 'Work Tasks', icon: Briefcase, color: 'bg-purple-50 border-purple-200 text-purple-700' },
-  { id: 'interesting_stuff', name: 'Interesting Stuff', icon: Lightbulb, color: 'bg-yellow-50 border-yellow-200 text-yellow-700' }
-];
+const iconMap = {
+  notes: FileText,
+  tasks: CheckSquare,
+  work_tasks: Briefcase,
+  interesting_stuff: Lightbulb
+};
 
 export default function Home() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function Home() {
   // Initialize active tab from URL parameters
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl && categories.some(cat => cat.id === tabFromUrl)) {
+    if (tabFromUrl && categoryMeta.some(cat => cat.id === tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -36,7 +37,7 @@ export default function Home() {
     const loadData = async () => {
       try {
         const loadedItems = {};
-        for (const category of categories) {
+        for (const category of categoryMeta) {
           const response = await fetch(`/api/content?category=${category.id}`);
           if (response.ok) {
             loadedItems[category.id] = await response.json();
@@ -49,7 +50,7 @@ export default function Home() {
         console.error('Error loading data:', error);
         // Fallback to empty arrays
         const emptyItems = {};
-        categories.forEach(cat => {
+        categoryMeta.forEach(cat => {
           emptyItems[cat.id] = [];
         });
         setItems(emptyItems);
@@ -146,7 +147,7 @@ export default function Home() {
       itemWithId.id = generateItemId();
     }
 
-    if ((categoryId === 'tasks' || categoryId === 'work_tasks') && typeof itemWithId.dueDate === 'undefined') {
+    if (taskCategoryIds.has(categoryId) && typeof itemWithId.dueDate === 'undefined') {
       itemWithId.dueDate = '';
     }
     
@@ -226,8 +227,8 @@ export default function Home() {
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
-            {categories.map((category) => {
-              const Icon = category.icon;
+            {categoryMeta.map((category) => {
+              const Icon = iconMap[category.id] || FileText;
               return (
                 <TabsTrigger 
                   key={category.id} 
@@ -241,13 +242,15 @@ export default function Home() {
             })}
           </TabsList>
 
-          {categories.map((category) => (
-            <TabsContent key={category.id} value={category.id} className="mt-0">
+          {categoryMeta.map((category) => {
+            const Icon = iconMap[category.id] || FileText;
+            return (
+              <TabsContent key={category.id} value={category.id} className="mt-0">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                      <category.icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" />
                       {category.name}
                     </h2>
                     <button
@@ -279,7 +282,7 @@ export default function Home() {
                   ) : (
                     <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                       <div className="text-gray-400 mb-4">
-                        <category.icon className="h-12 w-12 mx-auto" />
+                        <Icon className="h-12 w-12 mx-auto" />
                       </div>
                       <h3 className="text-lg font-medium text-gray-900 mb-2">
                         Select an item to view details
@@ -291,8 +294,9 @@ export default function Home() {
                   )}
                 </div>
               </div>
-            </TabsContent>
-          ))}
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
       <PWAInstallPrompt />

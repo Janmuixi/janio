@@ -12,6 +12,9 @@ import {
   updateDoc,
   deleteDoc
 } from '@/lib/db';
+import { categories } from '@/lib/categories';
+
+const validCategoryIds = new Set(categories.map((cat) => cat.id));
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -19,6 +22,9 @@ export async function GET(request) {
 
   if (!category) {
     return NextResponse.json({ error: 'Category parameter is required' }, { status: 400 });
+  }
+  if (!validCategoryIds.has(category)) {
+    return NextResponse.json({ error: 'Unknown category' }, { status: 400 });
   }
 
   try {
@@ -61,8 +67,8 @@ export async function POST(request) {
 
     if (action === 'create') {
       const { category, item } = body;
-      if (!category || !item || !item.id) {
-        return NextResponse.json({ error: 'Category and item with id are required' }, { status: 400 });
+      if (!category || !validCategoryIds.has(category) || !item || !item.id) {
+        return NextResponse.json({ error: 'Valid category and item with id are required' }, { status: 400 });
       }
 
       const docRef = doc(contentCollection, item.id);
@@ -78,8 +84,8 @@ export async function POST(request) {
 
     if (action === 'update') {
       const { category, item } = body;
-      if (!category || !item || !item.id) {
-        return NextResponse.json({ error: 'Category and item with id are required' }, { status: 400 });
+      if (!category || !validCategoryIds.has(category) || !item || !item.id) {
+        return NextResponse.json({ error: 'Valid category and item with id are required' }, { status: 400 });
       }
 
       const docRef = doc(contentCollection, item.id);
